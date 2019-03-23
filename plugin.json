@@ -1,0 +1,14 @@
+{
+    "pluginName": "ProcessKiller",
+    "description": "关闭进程插件",
+    "main": "index.html",
+    "version": "0.0.1",
+    "author": "云之轩",
+    "logo": "logo.png",
+    "platform": ["win32"],
+    "preload":"preload.js",
+    "features": [{
+        "code": "kill",
+        "cmds": ["kill", "关闭进程"]
+    }]
+}

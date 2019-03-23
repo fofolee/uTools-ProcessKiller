@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/jquery-3.3.1.min.js"></script>
+    <title>taskkill</title>
+</head>
+
+<body>
+    <div id="tasklist"></div>
+    <div id="infopannel"></div>
+    <script>
+        function kill(taskname) {
+            window.taskkill(taskname, (info) => {
+                if (info.search('错误') != -1) {
+                    $("#infopannel").css({ "background": "#EF5350" });
+                } else {
+                    $("#infopannel").css({ "background": "#4CAF50" });
+                    $(".taskinfo").filter(function () {
+                        return $(this).text() === taskname;
+                    }).fadeOut(300);
+                }
+                $("#infopannel").html(info.replace(/\n/g,'<br>')).fadeIn(300).delay(4000).fadeOut(300);
+            });
+        }
+        utools.onPluginEnter(({ code, type, payload }) => {
+            utools.setExpendHeight(0);
+            utools.setSubInput(({ text }) => {
+                window.tasklist((task) => {
+                    utools.setExpendHeight(500);
+                    let taskinfo = '';
+                    for (var t of task) {
+                        taskname = t[0].replace(/"/g, '');
+                        if (taskname.toLowerCase().search(text.toLowerCase()) != -1) {
+                            taskinfo += '<div class="taskinfo" onclick=\'kill("' + taskname + '")\'>' + taskname + '</div><br>';
+                        }
+                    }
+                    $("#tasklist").html(taskinfo);
+                });
+            }, '输入进程名，回车关闭，或点击关闭');
+        });
+        $(document).keydown(function (e) {
+            if (e.keyCode === 13) {
+                kill($(".taskinfo").html());
+            }
+        })
+    </script>
+</body>
+
+</html>
