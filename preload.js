@@ -51,8 +51,12 @@ tasklist = (callback) => {
     });
 }
 
-taskkill = (taskname, callback) => {
-    let ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname}`);
+taskkill = (taskname, taskpath, callback) => {
+    if (taskpath == undefined) {
+        var ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname}`);
+    } else {
+        var ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname};Start-Process -FilePath "${taskpath}"`);
+    }
     ps.on("error-output", data => {
         callback(data.split('\n')[0])
     });
