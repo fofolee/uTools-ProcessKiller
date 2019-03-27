@@ -1,26 +1,59 @@
-const exec = require('child_process').exec;
-const iconv = require('iconv-lite');
+const fs = require('fs');
+const path = require("path");
+const iconExtractor = require('icon-extractor');
+const os = require('os')
+const PowerShell = require("powershell");
 
-window.tasklist = (callback) => {
-    // if(process.platform === 'win32'){}
-    let cmd = 'tasklist /FO csv /NH /V'
-    exec(cmd, function (err, stdout, stderr) {
-        let tasklist = [];
-        let lines = stdout.trim().split('\n');
-        for (var line of lines){
-           tasklist.push(line.trim().split(','));
-        }
-        callback(tasklist);
-    })
+
+getico = tasks =>{
+    iconExtractor.emitter.on('icon', function (data) {
+        let icondir = path.join(os.tmpdir(), 'ProcessIcon')
+        fs.exists(icondir, exists => {
+            if (!exists) { fs.mkdirSync(icondir) }
+            let iconpath = path.join(icondir, `${data.Context}.png`)
+            fs.exists(iconpath, exists => {
+                if (!exists) {
+                    fs.writeFile(iconpath, data.Base64ImageData, "base64", err => {
+                        if (err) { console.log(err); }
+                    })
+                }
+            })
+        })
+    });
+
+    for (var task of tasks) {
+        iconExtractor.getIcon(task.ProcessName, task.Path);
+    }
 }
 
-window.taskkill = (taskname, callback) => {
-    let cmd = 'TASKKILL /F /IM "' + taskname + '" /T'
-    exec(cmd, { encoding: "buffer"}, (err, stdout, stderr) => {
-        if (err) {
-            callback(iconv.decode(stderr,'cp936'));
-            return;
+tasklist = (callback) => {
+    let ps = new PowerShell("chcp 65001;Get-Process | Format-List ProcessName,Path,Description");
+    ps.on("output", data => {
+        let tasklist = [];
+        let tasks = data.trim().split('\r\n\r\n');
+        for (var task of tasks) {
+            dict = {}
+            let lines = task.split('\r\n')
+            for (var line of lines) {
+                if (line) {
+                    let key = line.split(/\s+:\s*/)[0];
+                    let value = line.split(/\s+:\s*/)[1];
+                    dict[key] = value;
+                }
+            }
+            var icon = path.join(os.tmpdir(), 'ProcessIcon', `${dict.ProcessName}.png`);
+            dict.Icon = icon
+            tasklist.push(dict);
         }
-        callback(iconv.decode(stdout,'cp936'));
-    })
+        tasklist.shift();
+        getico(tasklist);
+        callback(tasklist);
+    });
+}
+
+taskkill = (taskname, callback) => {
+    let ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname}`);
+    ps.on("error-output", data => {
+        callback(data.split('\n')[0])
+    });
 }
