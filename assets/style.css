@@ -5,23 +5,28 @@
     top: 0;
     bottom: 0;
 }
+
 .taskinfo {
     background: #f5f5f533;
     cursor: pointer;
     height: 50px;
 }
-.taskinfo:hover{
+
+.taskinfo:hover {
     background: #ebebeb;
     transition: 0.5s;
 }
-.description{
-    padding-top:5px;
+
+.description {
+    padding-top: 5px;
 }
-.path{
+
+.path {
     color: #888888;
     font-size: small;
 }
-#infopannel{
+
+#infopannel {
     position: fixed;
     left: 0;
     right: 0;
@@ -30,7 +35,8 @@
     color: white;
     display: none;
 }
-img{
+
+img {
     float: left;
     margin: 10px;
     height: 30px;
