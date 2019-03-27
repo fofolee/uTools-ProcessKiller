@@ -2,7 +2,7 @@
     "pluginName": "ProcessKiller",
     "description": "关闭进程插件",
     "main": "index.html",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "author": "云之轩",
     "homepage":"https://github.com/fofolee/uTools-ProcessKiller",
     "logo": "logo.png",
