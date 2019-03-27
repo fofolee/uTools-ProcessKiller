@@ -1,22 +1,41 @@
+#tasklist {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
 .taskinfo {
-    border-radius: 5px;
-    padding: 1rem;
-    margin: -0.3rem 0.5rem;
-    text-align: center;
     background: #f5f5f533;
-    border: 1px solid #03A9F4;
     cursor: pointer;
+    height: 50px;
 }
 .taskinfo:hover{
-    border: 1px solid #F44336;
+    background: #ebebeb;
     transition: 0.5s;
+}
+.prompt{
+    text-align: center;
+    padding: 1rem
+}
+.description{
+    padding-top:5px;
+}
+.path{
+    color: #888888;
+    font-size: small;
 }
 #infopannel{
     position: fixed;
     left: 0;
     right: 0;
-    bottom: 0;
+    top: 0;
     padding: 1rem;
     color: white;
     display: none;
+}
+img{
+    float: left;
+    margin: 10px;
+    height: 30px;
 }
