@@ -12,9 +12,8 @@
     height: 50px;
 }
 
-.taskinfo:hover {
+.select{
     background: #ebebeb;
-    transition: 0.5s;
 }
 
 .description {

@@ -13,60 +13,7 @@
 <body>
     <div id="tasklist"></div>
     <div id="infopannel"></div>
-    <script>
-        kill = (taskname, taskpath) => {
-            window.taskkill(taskname, taskpath, err => {
-                if (err) {
-                    $("#infopannel").css({ "background": "#EF5350" });
-                    $("#infopannel").html(err).fadeIn(300).delay(3000).fadeOut(300);
-                } else {
-                    if(taskpath == undefined){
-                        $("[name='" + taskname + "']").fadeOut(300).remove()
-                        let tasknum = $(".taskinfo").length
-                        utools.setExpendHeight(tasknum > 10 ? 500 : 50 * tasknum);
-                        window.tasklist((task) => {
-                            window.tasks = task
-                        });
-                    }else{
-                    $("#infopannel").css({ "background": "#83bf40" });
-                    $("#infopannel").html('重启进程成功！').fadeIn(300).delay(3000).fadeOut(300);
-                    }
-                }
-            });
-        }
-        utools.onPluginEnter(({ code, type, payload }) => {
-            utools.setExpendHeight(0);
-            window.tasklist((task) => {
-                window.tasks = task
-                utools.setSubInput(({ text }) => {
-                    var taskinfo = '';
-                        for (var t of window.tasks) {
-                            if (t.ProcessName.toUpperCase().search(text.toUpperCase()) != -1 || t.Description.toUpperCase().search(text.toUpperCase()) != -1) {
-                                let title = t.Description ? t.Description : t.ProcessName;
-                                taskinfo += '<div class="taskinfo" name="' + t.ProcessName + '">';
-                                taskinfo += '<img src="file:///' + t.Icon + '">';
-                                taskinfo += '<div class="description">' + title + '</div><div class="path">' + t.Path + '</div></div>';
-                                }
-                            }
-                        $("#tasklist").html(taskinfo);
-                        let tasknum = $(".taskinfo").length
-                        utools.setExpendHeight(tasknum > 10 ? 500 : 50 * tasknum);
-                    }, '输入进程名，回车关闭，或点击关闭');
-                });
-            });
-            $("#tasklist").on('mousedown', '.taskinfo', function (e) {
-                if (1 == e.which) {
-                    kill($(this).attr('name'));
-                }else if(3 == e.which){
-                    kill($(this).attr('name'), $(this).children(".path").html().replace(/\\/g,'/'))
-                }
-             });
-            $(document).keydown(e => {
-                if (e.keyCode === 13) {
-                    kill($(".taskinfo").attr('name'));
-                }
-            });
-    </script>
+    <script src="assets/index.js"></script>
 </body>
 
 </html>
