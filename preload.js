@@ -41,7 +41,7 @@ tasklist = (callback) => {
                     dict[key] = value;
                 }
             }
-            var icon = path.join(os.tmpdir(), 'ProcessIcon', `${dict.ProcessName}.png`);
+            var icon = path.join(os.tmpdir(), 'ProcessIcon', `${encodeURIComponent(dict.ProcessName)}.png`);
             dict.Icon = icon
             tasklist.push(dict);
         }
