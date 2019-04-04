@@ -54,6 +54,11 @@ $("#tasklist").on('mousedown', '.taskinfo', function (e) {
     }
 });
 
+$("#tasklist").on('mouseover', '.taskinfo', function () {
+    $(".select").removeClass('select');
+    $(this).addClass('select')
+});
+
 $(document).keydown(e => {
     switch (e.keyCode) {
         case 13:
