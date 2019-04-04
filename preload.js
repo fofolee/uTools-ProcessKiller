@@ -2,7 +2,8 @@ const fs = require('fs');
 const path = require("path");
 const iconExtractor = require('icon-extractor');
 const os = require('os')
-const PowerShell = require("powershell");
+const iconv = require('iconv-lite')
+const { spawn } = require("child_process")
 
 
 getico = tasks =>{
@@ -26,11 +27,27 @@ getico = tasks =>{
     }
 }
 
+powershell = (cmd, callback) => {
+    const ps = spawn('powershell', ['-Command', cmd], { encoding: 'buffer' })
+    let chunks = [];
+    let err_chunks = [];
+    ps.stdout.on('data', chunk => {
+        chunks.push(iconv.decode(chunk, 'cp936'))
+    })
+    ps.stderr.on('data', err_chunk => {
+        err_chunks.push(iconv.decode(err_chunk, 'cp936'))
+    })
+    ps.on('close', code => {
+        let stdout = chunks.join("");
+        let stderr = err_chunks.join("");
+        callback(stdout, stderr)
+    })
+}
+
 tasklist = (callback) => {
-    let ps = new PowerShell("chcp 65001;Get-Process | Format-List ProcessName,Path,Description");
-    ps.on("output", data => {
+    powershell("Get-Process | Format-List ProcessName,Path,Description", (stdout, stderr) => {
         let tasklist = [];
-        let tasks = data.trim().split('\r\n\r\n');
+        let tasks = stdout.trim().split('\r\n\r\n');
         for (var task of tasks) {
             dict = {}
             let lines = task.split('\r\n')
@@ -52,12 +69,8 @@ tasklist = (callback) => {
 }
 
 taskkill = (taskname, taskpath, callback) => {
-    if (taskpath == undefined) {
-        var ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname}`);
-    } else {
-        var ps = new PowerShell(`chcp 65001;Stop-Process -Name ${taskname};Start-Process -FilePath "${taskpath}"`);
-    }
-    ps.on("error-output", data => {
-        callback(data.split('\n')[0])
+    let restart = taskpath == undefined ? '' : `;Start-Process -FilePath "${taskpath}"`;
+    powershell(`Stop-Process -Name ${taskname}${restart}`, (stdout, stderr) => {
+        callback(stderr.split('\n')[0])
     });
 }
