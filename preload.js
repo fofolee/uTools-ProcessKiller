@@ -1,30 +1,25 @@
-const fs = require('fs');
-const path = require("path");
-const iconExtractor = require('icon-extractor');
 const os = require('os')
 const iconv = require('iconv-lite')
-const { spawn } = require("child_process")
+const { spawn, exec } = require("child_process")
+const { dialog, BrowserWindow, nativeImage } = require('electron').remote
+const { shell } = require('electron');
+const path = require("path")
 
 
-getico = tasks =>{
-    iconExtractor.emitter.on('icon', function (data) {
-        let icondir = path.join(os.tmpdir(), 'ProcessIcon')
-        fs.exists(icondir, exists => {
-            if (!exists) { fs.mkdirSync(icondir) }
-            let iconpath = path.join(icondir, `${data.Context}.png`)
-            fs.exists(iconpath, exists => {
-                if (!exists) {
-                    fs.writeFile(iconpath, data.Base64ImageData, "base64", err => {
-                        if (err) { console.log(err); }
-                    })
-                }
-            })
-        })
-    });
+isWin = os.platform() == 'win32' ? true : false;
 
-    for (var task of tasks) {
-        iconExtractor.getIcon(task.ProcessName, task.Path);
-    }
+getIco = isWin ? require('icon-extractor') : require('file-icon');
+
+getLogo = () => nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
+
+messageBox = (options, callback) => {
+    dialog.showMessageBox(BrowserWindow.getFocusedWindow(), options, index => {
+        callback(index);
+    })
+}
+
+open = url => {
+    shell.openExternal(url);
 }
 
 powershell = (cmd, callback) => {
@@ -45,32 +40,59 @@ powershell = (cmd, callback) => {
 }
 
 tasklist = (callback) => {
-    powershell("Get-Process | Format-List ProcessName,Path,Description", (stdout, stderr) => {
-        let tasklist = [];
-        let tasks = stdout.trim().split('\r\n\r\n');
-        for (var task of tasks) {
-            dict = {}
-            let lines = task.split('\r\n')
-            for (var line of lines) {
-                if (line) {
-                    let key = line.split(/\s+:\s*/)[0];
-                    let value = line.split(/\s+:\s*/)[1];
-                    dict[key] = value;
-                }
+    var tasklist = [];
+    if (isWin) {
+        powershell("Get-Process | Format-List ProcessName,Path,Description", (stdout, stderr) => {
+            let tasks = stdout.trim().split('\r\n\r\n');
+            for (var task of tasks) {
+                dict = {}
+                let lines = task.split('\r\n')
+                lines.forEach(line => {
+                    if (line) {
+                        let key = line.split(/\s+:\s*/)[0];
+                        let value = line.split(/\s+:\s*/)[1];
+                        dict[key] = value;
+                    }
+                })
+                tasklist.push(dict);
             }
-            var icon = path.join(os.tmpdir(), 'ProcessIcon', `${encodeURIComponent(dict.ProcessName)}.png`);
-            dict.Icon = icon
-            tasklist.push(dict);
-        }
-        tasklist.shift();
-        getico(tasklist);
-        callback(tasklist);
-    });
+            tasklist.shift();
+            callback(tasklist);
+        });
+    } else {
+        exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
+            lines = stdout.split('\n');
+            lines.forEach(line => {
+                if (line) {
+                    l = /(\d+)\s+(\d+[\.|\,]\d+)\s+(\d+[\.|\,]\d+)\s+(.*?)\s+(.*)/.exec(line);
+                    dict = {
+                        pid: l[1],
+                        cpu: l[2],
+                        mem: l[3],
+                        usr: l[4],
+                        path: l[5],
+                        nam: l[5].split('/').pop(),
+                    }
+                    let ico = /\/Applications\/(.*?)\.app\//.exec(dict.path)
+                    dict.ico = ico ? ico[1] : false;
+                    tasklist.push(dict);
+                }
+            });
+            callback(tasklist);
+        });
+    }
 }
 
-taskkill = (taskname, taskpath, callback) => {
-    let restart = taskpath == undefined ? '' : `;Start-Process -FilePath "${taskpath}"`;
-    powershell(`Stop-Process -Name ${taskname}${restart}`, (stdout, stderr) => {
-        callback(stderr.split('\n')[0])
-    });
+taskkill = (task, path, callback) => {
+    if (isWin) {
+        let restart = path == undefined ? '' : `;Start-Process -FilePath "${path}"`;
+        powershell(`Stop-Process -Name ${task}${restart}`, (stdout, stderr) => {
+            callback(stderr.split('\n')[0])
+        });
+    } else {
+        let restart = path == undefined ? '' : `&& "${path}"`;
+        exec(`kill -9 ${task}${restart}`, (err, stdout, stderr) => {
+            callback(stderr);
+        });
+    }
 }

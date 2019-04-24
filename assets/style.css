@@ -23,6 +23,23 @@
 .path {
     color: #888888;
     font-size: small;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis
+}
+
+.user {
+  float: right;
+  margin: 15px 10px;
+  height: 20px;
+  color: #666666
+}
+
+.usage {
+font-size: small;
+    float: left;
+    color: #607D8B;
+    margin-right: 5px;
 }
 
 #infopannel {
@@ -39,4 +56,11 @@ img {
     float: left;
     margin: 10px;
     height: 30px;
+}
+
+.load {
+  margin-top: 10px;
+  text-align: center;
+  font-size: large;
+  color: #666666;
 }
