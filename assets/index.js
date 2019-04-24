@@ -1,7 +1,7 @@
 checkUpdate = () => {
     let cv = 'v0.0.5',
         pg = 'https://yuanliao.info/d/296';
-    if (utools.db.get(cv).data != 'pass') {
+    if (!utools.db.get(cv)) {
         $.get(pg, data => {
             data = /<title>\[插件\]\[关闭进程 ProcessKiller (.*?)\](.*?) - 猿料<\/title>/.exec(data);
             let lv = data[1],
