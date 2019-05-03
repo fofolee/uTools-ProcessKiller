@@ -1,18 +1,15 @@
 const os = require('os')
 const iconv = require('iconv-lite')
 const { spawn, exec } = require("child_process")
+
+//-------checkUpdate------
+const fs = require('fs')
+const path = require("path")
 const { dialog, BrowserWindow, nativeImage } = require('electron').remote
 const { shell } = require('electron');
-const path = require("path")
 
-
-isWin = os.platform() == 'win32' ? true : false;
-
-getIco = isWin ? require('icon-extractor') : require('file-icon');
-
-totalMem = os.totalmem();
-
-getLogo = () => nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
+pluginInfo = JSON.parse(fs.readFileSync(path.join(__dirname, 'plugin.json')));
+logo = nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
 
 messageBox = (options, callback) => {
     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), options, index => {
@@ -23,6 +20,13 @@ messageBox = (options, callback) => {
 open = url => {
     shell.openExternal(url);
 }
+// ------------------------
+
+isWin = os.platform() == 'win32' ? true : false;
+
+getIco = isWin ? require('icon-extractor') : require('file-icon');
+
+totalMem = os.totalmem();
 
 powershell = (cmd, callback) => {
     const ps = spawn('powershell', ['-Command', cmd], { encoding: 'buffer' })
