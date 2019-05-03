@@ -10,6 +10,8 @@ isWin = os.platform() == 'win32' ? true : false;
 
 getIco = isWin ? require('icon-extractor') : require('file-icon');
 
+totalMem = os.totalmem();
+
 getLogo = () => nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
 
 messageBox = (options, callback) => {
@@ -42,21 +44,8 @@ powershell = (cmd, callback) => {
 tasklist = (callback) => {
     var tasklist = [];
     if (isWin) {
-        powershell("Get-Process | Format-List ProcessName,Path,Description", (stdout, stderr) => {
-            let tasks = stdout.trim().split('\r\n\r\n');
-            for (var task of tasks) {
-                dict = {}
-                let lines = task.split('\r\n')
-                lines.forEach(line => {
-                    if (line) {
-                        let key = line.split(/\s+:\s*/)[0];
-                        let value = line.split(/\s+:\s*/)[1];
-                        dict[key] = value;
-                    }
-                })
-                tasklist.push(dict);
-            }
-            tasklist.shift();
+        powershell("Get-Process -IncludeUserName | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet,UserName | ConvertTo-Json", (stdout, stderr) => {
+            tasklist = JSON.parse(stdout);
             callback(tasklist);
         });
     } else {
