@@ -29,7 +29,7 @@ getIco = isWin ? require('icon-extractor') : require('file-icon');
 totalMem = os.totalmem();
 
 powershell = (cmd, callback) => {
-    const ps = spawn('powershell', ['-Command', cmd], { encoding: 'buffer' })
+    const ps = spawn('powershell', ['-NoProfile', '-Command', cmd], { encoding: 'buffer' })
     let chunks = [];
     let err_chunks = [];
     ps.stdout.on('data', chunk => {
@@ -89,3 +89,7 @@ taskkill = (task, path, callback) => {
         });
     }
 }
+
+tasklist(l => {
+    console.log(l);
+})
