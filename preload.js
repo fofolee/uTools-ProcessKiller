@@ -48,10 +48,16 @@ powershell = (cmd, callback) => {
 tasklist = (callback) => {
     var tasklist = [];
     if (isWin) {
-        powershell("Get-Process -IncludeUserName | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet,UserName | ConvertTo-Json", (stdout, stderr) => {
-            tasklist = JSON.parse(stdout);
-            callback(tasklist);
-        });
+        exec('net session > NULL && echo 1 || echo 0', (err, stdout, stderr) => {
+            let isAdmin = parseInt(stdout),
+                IncludeUserName = isAdmin ? '-IncludeUserName' : '',
+                UserName = isAdmin ? ',UserName' : '';
+                powershell(`Get-Process ${IncludeUserName} | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet${UserName} | ConvertTo-Json`, (stdout, stderr) => {
+                    stderr && dialog.showMessageBox(BrowserWindow.getFocusedWindow(), { type: 'error', title: '啊嘞?!', message: stderr })
+                    tasklist = JSON.parse(stdout);
+                    callback(tasklist);
+                });
+        })
     } else {
         exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
             lines = stdout.split('\n');
