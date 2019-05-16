@@ -1,6 +1,7 @@
 const os = require('os')
 const iconv = require('iconv-lite')
 const { spawn, exec } = require("child_process")
+const jschardet = require("jschardet")
 
 //-------checkUpdate------
 const fs = require('fs')
@@ -30,17 +31,20 @@ totalMem = os.totalmem();
 
 powershell = (cmd, callback) => {
     const ps = spawn('powershell', ['-NoProfile', '-Command', cmd], { encoding: 'buffer' })
-    let chunks = [];
-    let err_chunks = [];
+    let chunks = [], err_chunks = [], size = 0, err_size = 0;
     ps.stdout.on('data', chunk => {
-        chunks.push(iconv.decode(chunk, 'cp936'))
+        chunks.push(chunk);
+        size += chunk.length;
     })
     ps.stderr.on('data', err_chunk => {
-        err_chunks.push(iconv.decode(err_chunk, 'cp936'))
+        err_chunks.push(err_chunk);
+        err_size += err_chunk.length;
     })
     ps.on('close', code => {
-        let stdout = chunks.join("");
-        let stderr = err_chunks.join("");
+        let stdout = Buffer.concat(chunks, size);
+        stdout = stdout.length ? iconv.decode(stdout, jschardet.detect(stdout).encoding) : '';
+        let stderr = Buffer.concat(err_chunks, err_size);
+        stderr = stderr.length ? iconv.decode(stderr, jschardet.detect(stderr).encoding) : '';
         callback(stdout, stderr)
     })
 }
@@ -95,7 +99,3 @@ taskkill = (task, path, callback) => {
         });
     }
 }
-
-tasklist(l => {
-    console.log(l);
-})
