@@ -62,6 +62,7 @@ kill = (taskname, taskpath) => {
             $("#infopannel").html(err).fadeIn(300).delay(3000).fadeOut(300);
         } else {
             if (taskpath == undefined) {
+                $('.select').remove();
                 let tasknum = $(".taskinfo").length
                 utools.setExpendHeight(tasknum > 11 ? 550 : 50 * tasknum);
             } else {
