@@ -1,11 +1,13 @@
 const os = require('os')
 const iconv = require('iconv-lite')
-const { spawn, exec } = require("child_process")
-// const { dialog, BrowserWindow, nativeImage } = require('electron').remote
-// const { shell } = require('electron');
+const { spawn, exec, execFile, execSync } = require("child_process")
 const path = require("path")
+const fs = require('fs');
+const jschardet = require('jschardet');
 
 isDev = /unsafe-\w+\.asar/.test(__dirname) ? false : true
+
+basename = path.basename
 
 GetBinPath = ExeFile => {
     if (isDev) {
@@ -18,80 +20,68 @@ GetBinPath = ExeFile => {
 
 isWin = os.platform() == 'win32' ? true : false;
 
-getIco = isWin ? require('icon-extractor') : require('file-icon');
-
-// getLogo = () => nativeImage.createFromPath(path.join(__dirname, 'logo.png'));
-
-// messageBox = (options, callback) => {
-//     dialog.showMessageBox(BrowserWindow.getFocusedWindow(), options, index => {
-//         callback(index);
-//     })
-// }
-
-// open = url => {
-//     shell.openExternal(url);
-// }
+totalMem = os.totalmem();
 
 powershell = (cmd, callback) => {
-    const ps = spawn('powershell', ['-Command', cmd], { encoding: 'buffer' })
-    let chunks = [];
-    let err_chunks = [];
+    const ps = spawn('powershell', ['-NoProfile', '-Command', cmd], { encoding: 'buffer' })
+    let chunks = [], err_chunks = [], size = 0, err_size = 0;
     ps.stdout.on('data', chunk => {
-        chunks.push(iconv.decode(chunk, 'cp936'))
+        chunks.push(chunk);
+        size += chunk.length;
     })
     ps.stderr.on('data', err_chunk => {
-        err_chunks.push(iconv.decode(err_chunk, 'cp936'))
+        err_chunks.push(err_chunk);
+        err_size += err_chunk.length;
     })
     ps.on('close', code => {
-        let stdout = chunks.join("");
-        let stderr = err_chunks.join("");
+        let stdout = Buffer.concat(chunks, size);
+        stdout = stdout.length ? iconv.decode(stdout, jschardet.detect(stdout).encoding) : '';
+        let stderr = Buffer.concat(err_chunks, err_size);
+        stderr = stderr.length ? iconv.decode(stderr, jschardet.detect(stderr).encoding) : '';
         callback(stdout, stderr)
     })
 }
 
-tasklist = (callback) => {
-    var tasklist = [];
-    if (isWin) {
-        powershell("Get-Process | Format-List ProcessName,Path,Description", (stdout, stderr) => {
-            let tasks = stdout.trim().split('\r\n\r\n');
-            for (var task of tasks) {
-                dict = {}
-                let lines = task.split('\r\n')
-                lines.forEach(line => {
-                    if (line) {
-                        let key = line.split(/\s+:\s*/)[0];
-                        let value = line.split(/\s+:\s*/)[1];
-                        dict[key] = value;
-                    }
+tasklist = () =>
+    new Promise((reslove, reject) => {
+        {
+            var tasklist = [];
+            if (isWin) {
+                exec('net session > NULL && echo 1 || echo 0', (err, stdout, stderr) => {
+                    let isAdmin = parseInt(stdout),
+                        IncludeUserName = isAdmin ? '-IncludeUserName' : '',
+                        UserName = isAdmin ? ',UserName' : '';
+                    powershell(`Get-Process ${IncludeUserName} | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet${UserName} | ConvertTo-Json`, (stdout, stderr) => {
+                        stderr && console.log(stderr);
+                        tasklist = JSON.parse(stdout);
+                        reslove(tasklist);
+                    });
                 })
-                tasklist.push(dict);
+            } else {
+                exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
+                    lines = stdout.split('\n');
+                    lines.forEach(line => {
+                        if (line) {
+                            l = /(\d+)\s+(\d+[\.|\,]\d+)\s+(\d+[\.|\,]\d+)\s+(.*?)\s+(.*)/.exec(line);
+                            dict = {
+                                pid: l[1],
+                                cpu: l[2],
+                                mem: l[3],
+                                usr: l[4],
+                                path: l[5],
+                                nam: l[5].split('/').pop(),
+                            }
+                            let reg = /.*?\/Applications\/.*?\.app\//.exec(dict.path)
+                            dict.app = reg ? reg[0] : false;
+                            tasklist.push(dict);
+                        }
+                    });
+                    reslove(tasklist);
+                });
             }
-            tasklist.shift();
-            callback(tasklist);
-        });
-    } else {
-        exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
-            lines = stdout.split('\n');
-            lines.forEach(line => {
-                if (line) {
-                    l = /(\d+)\s+(\d+[\.|\,]\d+)\s+(\d+[\.|\,]\d+)\s+(.*?)\s+(.*)/.exec(line);
-                    dict = {
-                        pid: l[1],
-                        cpu: l[2],
-                        mem: l[3],
-                        usr: l[4],
-                        path: l[5],
-                        nam: l[5].split('/').pop(),
-                    }
-                    let ico = /\/Applications\/(.*?)\.app\//.exec(dict.path)
-                    dict.ico = ico ? ico[1] : false;
-                    tasklist.push(dict);
-                }
-            });
-            callback(tasklist);
-        });
-    }
-}
+        }
+    })
+    
 
 taskkill = (task, path, callback) => {
     if (isWin) {
@@ -106,3 +96,52 @@ taskkill = (task, path, callback) => {
         });
     }
 }
+
+findSecondIndex = (str, cha) => {
+    var x = str.indexOf(cha);
+    var y = str.indexOf(cha, x + 1);
+    var z = str.indexOf(cha, y + 1);
+    if (z == -1) return x
+    return z;
+}
+
+icns2Base64 = icns => {
+    buffer = fs.readFileSync(icns, Buffer)
+    ImgHead = Buffer.from([0x89, 0x50, 0x4E, 0x47])
+    ImgTail = Buffer.from([0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82])
+    var start = findSecondIndex(buffer, ImgHead);
+    // var WidthPos = start + 18;
+    // var ImgWidth = buffer.readInt16BE(WidthPos);
+    var end = findSecondIndex(buffer, ImgTail) + 8;
+    var b64 = buffer.slice(start, end).toString('base64')
+    return b64
+}
+
+
+GetIcons = PathList =>
+    new Promise((reslove, reject) => {
+        if (isWin) {
+            PathList = PathList.join("|").replace("\\", "/");
+            execFile(GetBinPath('ProcessKiller.exe'), ["getIcons", PathList],{ encoding: 'buffer' },(error, stdout, stderr) => {
+                error && reject(iconv.decode(stderr, 'gb18030'));
+                data = JSON.parse(iconv.decode(stdout, 'gb18030'));
+                reslove(data);
+              });
+        } else {
+            data = []
+            PathList.forEach(p => {
+                var InfoFile = path.join(p, 'Contents', 'Info.plist');
+                if (fs.existsSync(InfoFile)) {
+                    var info = execSync(`plutil -p "${InfoFile}"`);
+                    var IconFile = /"CFBundleIconFile" => "(.*?)(\.icns){0,1}"/.exec(info)[1] + '.icns';
+                    IconFile = path.join(p, 'Contents', 'Resources', IconFile);
+                    var b64Ico = icns2Base64(IconFile);
+                    data.push({
+                        path: p,
+                        b64Ico: b64Ico
+                    })
+                }
+            })
+            reslove(data)
+        }
+    })

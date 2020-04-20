@@ -8,7 +8,7 @@
     "publishPage": "https://yuanliao.info/d/296",
     "logo": "logo.png",
     "platform": ["win32", "darwin"],
-    "unpack":"{IconExtractor.exe,Newtonsoft.Json.dll,file-icon}",
+    "unpack":"ProcessKiller.exe",
     "preload":"preload.js",
     "features": [{
         "code": "kill",
