@@ -1,9 +1,10 @@
 const os = require('os')
 const iconv = require('iconv-lite')
-const { spawn, exec, execFile, execSync } = require("child_process")
+const { exec, execFile, execSync } = require("child_process")
 const path = require("path")
 const fs = require('fs');
-const jschardet = require('jschardet');
+const process = require('process');
+// const jschardet = require('jschardet');
 
 isDev = /unsafe-\w+\.asar/.test(__dirname) ? false : true
 
@@ -17,30 +18,9 @@ GetBinPath = ExeFile => {
     }
 }
 
-
 isWin = os.platform() == 'win32' ? true : false;
 
 totalMem = os.totalmem();
-
-powershell = (cmd, callback) => {
-    const ps = spawn('powershell', ['-NoProfile', '-Command', cmd], { encoding: 'buffer' })
-    let chunks = [], err_chunks = [], size = 0, err_size = 0;
-    ps.stdout.on('data', chunk => {
-        chunks.push(chunk);
-        size += chunk.length;
-    })
-    ps.stderr.on('data', err_chunk => {
-        err_chunks.push(err_chunk);
-        err_size += err_chunk.length;
-    })
-    ps.on('close', code => {
-        let stdout = Buffer.concat(chunks, size);
-        stdout = stdout.length ? iconv.decode(stdout, jschardet.detect(stdout).encoding) : '';
-        let stderr = Buffer.concat(err_chunks, err_size);
-        stderr = stderr.length ? iconv.decode(stderr, jschardet.detect(stderr).encoding) : '';
-        callback(stdout, stderr)
-    })
-}
 
 tasklist = () =>
     new Promise((reslove, reject) => {
@@ -55,30 +35,13 @@ tasklist = () =>
                     });
                     reslove(data);
                 })
-                // exec('net session > NULL && echo 1 || echo 0', (err, stdout, stderr) => {
-                //     let isAdmin = parseInt(stdout),
-                //         IncludeUserName = isAdmin ? '-IncludeUserName' : '',
-                //         UserName = isAdmin ? ',UserName' : '';
-                //     powershell(`Get-Process ${IncludeUserName} | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet${UserName} | ConvertTo-Json`, (stdout, stderr) => {
-                //         stderr && console.log(stderr);
-                //         tasklist = JSON.parse(stdout);
-                //         reslove(tasklist);
-                //     });
-                // })
             } else {
                 exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
                     lines = stdout.split('\n');
                     lines.forEach(line => {
                         if (line) {
                             l = /(\d+)\s+(\d+[\.|\,]\d+)\s+(\d+[\.|\,]\d+)\s+(.*?)\s+(.*)/.exec(line);
-                            dict = {
-                                pid: l[1],
-                                cpu: l[2],
-                                mem: l[3],
-                                usr: l[4],
-                                path: l[5],
-                                nam: l[5].split('/').pop(),
-                            }
+                            dict = { pid: l[1], cpu: l[2], mem: l[3], usr: l[4], path: l[5], nam: l[5].split('/').pop(), }
                             let reg = /.*?\/Applications\/.*?\.app\//.exec(dict.path)
                             dict.app = reg ? reg[0] : false;
                             tasklist.push(dict);
@@ -89,21 +52,21 @@ tasklist = () =>
             }
         }
     })
-    
 
-taskkill = (task, path, callback) => {
-    if (isWin) {
-        let restart = path == undefined ? '' : `;Start-Process -FilePath "${path}"`;
-        powershell(`Stop-Process -Name ${task}${restart}`, (stdout, stderr) => {
-            callback(stderr.split('\n')[0])
-        });
-    } else {
-        let restart = path == undefined ? '' : `&& "${path}"`;
-        exec(`kill -9 ${task}${restart}`, (err, stdout, stderr) => {
-            callback(stderr);
-        });
-    }
-}
+taskkill = (pid, restart) =>
+    new Promise((reslove, reject) => {
+        try {
+            process.kill(pid);
+        } catch (error) {
+            utools.showNotification(error);
+            reject(error);
+        }
+        if(restart){
+            utools.showNotification('重启进程成功！')
+            exec(restart);
+        }
+        reslove(true);
+})
 
 findThirdIndex = (str, cha) => {
     var x = str.indexOf(cha);
@@ -124,7 +87,6 @@ icns2Base64 = icns => {
     var b64 = buffer.slice(start, end).toString('base64')
     return b64
 }
-
 
 GetIcons = PathList =>
     new Promise((reslove, reject) => {
@@ -153,18 +115,3 @@ GetIcons = PathList =>
             reslove(data)
         }
     })
-
-// var initTime = new Date().getTime();
-// powershell(`Get-Process | sort-object ws -descending | Select-Object ProcessName,Path,Description,WorkingSet | ConvertTo-Json`, (stdout, stderr) => {
-//     stderr && console.log(stderr);
-//     tasklist = JSON.parse(stdout);
-//     console.log(tasklist);
-//     var EndTime = new Date().getTime();
-//     console.log(EndTime - initTime);
-// })
-
-// execFile(path.join('bin', 'ProcessKiller.exe'), ['getProcess'], (err, stdout, stderr) => {
-//     console.log(JSON.parse(stdout));
-//     var EndTime = new Date().getTime();
-//     console.log(EndTime - initTime);
-// })

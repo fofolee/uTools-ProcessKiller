@@ -32,30 +32,10 @@ CacheIcons = async tasks => {
     }
 }
 
-kill = (taskname, taskpath) => {
-    window.taskkill(taskname, taskpath, err => {
-        if (err) {
-            $("#infopannel").css({
-                "background": "#EF5350"
-            });
-            $("#infopannel").html(err).fadeIn(300).delay(3000).fadeOut(300);
-        } else {
-            if (taskpath == undefined) {
-                $('.select').remove();
-                let tasknum = $(".taskinfo").length
-                utools.setExpendHeight(tasknum > 11 ? 550 : 50 * tasknum);
-            } else {
-                $("#infopannel").css({
-                    "background": "#83bf40"
-                });
-                $("#infopannel").html('重启进程成功！').fadeIn(300).delay(3000).fadeOut(300);
-            }
-            window.tasklist((task) => {
-                window.tasks = task
-                show(window.text);
-            });
-        }
-    });
+kill = async (pid, restart) => {
+    await window.taskkill(pid, restart)
+    window.tasks = await tasklist();
+    show(window.text);
 }
 
 search = (t, text) => {
@@ -143,7 +123,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
 
 $("#tasklist").on('mousedown', '.taskinfo', function (e) {
     if (1 == e.which) {
-        kill($(this).attr('id'));
+        kill($(this).attr('id'), false);
     } else if (3 == e.which) {
         kill($(this).attr('id'), $(this).children(".path").html().replace(/\\/g, '/'))
     }
@@ -163,7 +143,7 @@ $(document).keydown(e => {
             if (event.shiftKey) {
                 kill($(".select").attr('id'), $(".select").children(".path").html().replace(/\\/g, '/'))
             } else {
-                kill($(".select").attr('id'));
+                kill($(".select").attr('id'), false);
             }
             break;
         case 38:
