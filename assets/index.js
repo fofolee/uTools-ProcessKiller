@@ -6,7 +6,7 @@ CacheIcons = async tasks => {
     var noCaches = [];
     if (window.isWin) {
         for (var t of tasks) {
-            if (t.Path) {
+            if (/^[A-z]:\\/.test(t.Path)) {
                 if (localStorage[basename(t.Path, '.exe')] == undefined && !noCaches.includes(t.Path)) noCaches.push(t.Path)
             }
         }
@@ -63,23 +63,20 @@ search = (t, text) => {
     var taskinfo = '';
     var icon;
     if (window.isWin) {
-        if (t.Path) {
+        if (/^[A-z]:\\/.test(t.Path)) {
             icon = localStorage[basename(t.Path, '.exe')]
         } else {
             icon = WINDOW_DEFAULT_ICON;
         }
         var n = (t.ProcessName + t.Description).toUpperCase();
         if (n.includes(text)) {
-            var usr = t.UserName ? t.UserName.split('\\').pop() : '',
-                title = t.Description ? t.Description : t.ProcessName,
-                mem = (parseInt(t.WorkingSet) * 100 / window.totalMem).toFixed(2),
-                path = t.Path ? t.Path : '';
-            taskinfo = `<div class="taskinfo" name="${t.ProcessName}">
-                  <div class="user">${usr}</div>
+            var mem = (parseInt(t.WorkingSet) * 100 / window.totalMem).toFixed(2);
+                // path = t.Path ? t.Path : '';
+            taskinfo = `<div class="taskinfo" id="${t.Id}">
                   <img src="data:image/png;base64,${icon}">
-                  <div class="description">${title}</div>
+                  <div class="description">${t.ProcessName}</div>
                   <div class="usage">M: ${mem}%</div>
-                  <div class="path">${path}</div></div>`;
+                  <div class="path">${t.Path}</div></div>`;
         }
     } else {
         if (t.app) {
@@ -114,20 +111,23 @@ show = text => {
 
 utools.onPluginEnter( async ({ code, type, payload }) => {
     utools.setExpendHeight(0);
-    // if (window.isWin) {
-    //     utools.setExpendHeight(50);
-    //     $("#tasklist").html(`<div class="load">Loading...</div>`);
-    //     $(".load").animate({ "opacity": "0.3" }, 500)
-    //         .animate({ "opacity": "1" }, 500);
-    // }
     var db = utools.db.get('iconCache');
     if (db) {
         for (var key in db.data) {
             localStorage[key] = db.data[key]
         }
     }
+    var initTime = new Date().getTime();
     window.tasks = await tasklist();
+    var tasksLoadedTime = new Date().getTime();
+    tasksLoadedTime -= initTime;
+    // 读取进程耗时
+    console.log(tasksLoadedTime);
     await CacheIcons(tasks);
+    var iconsCachedTime = new Date().getTime();
+    iconsCachedTime -= (tasksLoadedTime + initTime);
+    // 缓存图标耗时
+    console.log(iconsCachedTime);
     show('');
     utools.setSubInput(({ text }) => {
         window.text = text;
@@ -143,9 +143,9 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
 
 $("#tasklist").on('mousedown', '.taskinfo', function (e) {
     if (1 == e.which) {
-        kill($(this).attr('name'));
+        kill($(this).attr('id'));
     } else if (3 == e.which) {
-        kill($(this).attr('name'), $(this).children(".path").html().replace(/\\/g, '/'))
+        kill($(this).attr('id'), $(this).children(".path").html().replace(/\\/g, '/'))
     }
 });
 
@@ -161,9 +161,9 @@ $(document).keydown(e => {
     switch (e.keyCode) {
         case 13:
             if (event.shiftKey) {
-                kill($(".select").attr('name'), $(".select").children(".path").html().replace(/\\/g, '/'))
+                kill($(".select").attr('id'), $(".select").children(".path").html().replace(/\\/g, '/'))
             } else {
-                kill($(".select").attr('name'));
+                kill($(".select").attr('id'));
             }
             break;
         case 38:
