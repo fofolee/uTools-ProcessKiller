@@ -4,11 +4,15 @@ const { exec, execFile, execSync } = require("child_process")
 const path = require("path")
 const fs = require('fs');
 const process = require('process');
+const { clipboard, shell } = require('electron')
 // const jschardet = require('jschardet');
 
 isDev = /unsafe-\w+\.asar/.test(__dirname) ? false : true
 
 basename = path.basename
+
+copy = clipboard.writeText
+open = shell.showItemInFolder
 
 GetBinPath = ExeFile => {
     if (isDev) {
@@ -63,7 +67,7 @@ taskkill = (pid, restart) =>
         }
         if(restart){
             utools.showNotification('重启进程成功！')
-            exec(restart);
+            exec(`"${restart}"`);
         }
         reslove(true);
 })
