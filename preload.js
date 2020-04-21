@@ -62,7 +62,7 @@ taskkill = (pid, restart) =>
         try {
             process.kill(pid);
         } catch (error) {
-            utools.showNotification(error);
+            utools.showNotification('权限不足，请以管理员权限运行uTools');
             reject(error);
         }
         if(restart){
