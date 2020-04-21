@@ -57,7 +57,7 @@
 
 ## 下载
 
-[百度网盘](https://pan.baidu.com/s/1nfBnFLMdXisWATVYBKqONw) 提取码: `fmc6`
+[百度网盘](https://pan.baidu.com/s/1Q4I6LTRgrHgWm67F_xqv0A) 提取码: `nw4p`
 
 [项目地址](https://github.com/fofolee/uTools-ProcessKiller/)
 
