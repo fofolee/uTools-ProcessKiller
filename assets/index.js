@@ -32,8 +32,8 @@ CacheIcons = async tasks => {
 
 kill = async (pid, restart) => {
     await window.taskkill(pid, restart)
-    window.tasks = await tasklist();
-    show(window.text);
+    tasks = await tasklist();
+    show(tasks, window.text);
 }
 
 search = (t, text) => {
@@ -75,9 +75,9 @@ search = (t, text) => {
     return taskinfo;
 }
 
-show = text => {
+show = (tasks, text) => {
     var taskinfo = '';
-    for (var t of window.tasks) {
+    for (var t of tasks) {
         taskinfo += search(t, text);
     }
     $("#tasklist").html(taskinfo);
@@ -97,7 +97,8 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
         }
     }
     // var initTime = new Date().getTime();
-    window.tasks = await tasklist();
+    tasks = await tasklist();
+    window.text = '';
     // 读取进程耗时
     // var tasksLoadedTime = new Date().getTime();
     // tasksLoadedTime -= initTime;
@@ -107,7 +108,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
     // var iconsCachedTime = new Date().getTime();
     // iconsCachedTime -= (tasksLoadedTime + initTime);
     // console.log(iconsCachedTime);
-    show('');
+    show(tasks, window.text);
     sign = isWin ? 'Alt' : '⌘';
     $('.numbers').html(`
         <div>${sign}+1</div>
@@ -124,7 +125,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
     );
     utools.setSubInput(({ text }) => {
         window.text = text;
-        show(text);
+        show(tasks, text);
     }, '左/右键 -> 关闭/重启进程; ctrl + c/e/r -> 复制路径/在文件管理器中显示/重启');
     utools.onPluginOut(() => {
         var update = { _id: "iconCache", data: localStorage };
