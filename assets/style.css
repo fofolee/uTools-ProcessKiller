@@ -10,10 +10,16 @@
     background: #f5f5f533;
     cursor: pointer;
     height: 50px;
+    padding-right: 60px;
+    user-select: none;
 }
 
 .select{
     background: #ebebeb;
+}
+
+.founds {
+    color: #FF5722;
 }
 
 .description {
@@ -42,25 +48,24 @@ font-size: small;
     margin-right: 5px;
 }
 
-#infopannel {
-    position: fixed;
-    left: 0;
-    right: 0;
-    top: 0;
-    padding: 1rem;
-    color: white;
-    display: none;
-}
-
 img {
     float: left;
     margin: 10px;
     height: 30px;
 }
 
-.load {
-  margin-top: 10px;
-  text-align: center;
-  font-size: large;
-  color: #666666;
+.numbers{
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 60px;
+    font-size: 16px;
+    color: #747474;
+    font-weight: 200;
+    z-index: 999;
+}
+
+.numbers div{
+    height: 50px;;
+    line-height: 50px;
 }
