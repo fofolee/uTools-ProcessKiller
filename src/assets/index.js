@@ -144,7 +144,7 @@ $("#tasklist").on('mousedown', '.taskinfo', function (e) {
     if (1 == e.which) {
         kill($(this).attr('id'), false);
     } else if (3 == e.which) {
-        kill($(this).attr('id'), $(this).children(".path").html().replace(/\\/g, '/'))
+        kill($(this).attr('id'), $(this).children(".path").text().replace(/\\/g, '/'))
     }
 });
 
@@ -157,20 +157,20 @@ $("#tasklist").on('mousemove', '.taskinfo', function () {
 });
 
 Mousetrap.bind('ctrl+c', () => {
-    var path = $(".select").children(".path").html();
+    var path = $(".select").children(".path").text();
     copy(path);
     utools.showNotification('已复制')
     return false
 }); 
 
 Mousetrap.bind('ctrl+e', () => {
-    var path = $(".select").children(".path").html();
+    var path = $(".select").children(".path").text();
     open(path);
     return false
 }); 
 
 Mousetrap.bind('ctrl+r', () => {
-    kill($(".select").attr('id'), $(".select").children(".path").html().replace(/\\/g, '/'))
+    kill($(".select").attr('id'), $(".select").children(".path").text().replace(/\\/g, '/'))
     return false
 }); 
 
