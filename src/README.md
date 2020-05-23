@@ -1,4 +1,4 @@
-# ProcessKiller V0.1.1
+# ProcessKiller V0.1.2
 
 ## 简介
 
@@ -8,6 +8,11 @@
 - 有些进程是否能结束、路径是否能获取，取决于uTools是否以管理员权限运行
 
 ## 更新日志
+
+**v0.1.2**
+
+- 添加更多错误提示
+- 上架插件中心
 
 **v0.1.1**
 
@@ -22,7 +27,7 @@
 - 重写了 window下获取进程的方法,大幅提升进入插件的速度
 - 重写多出代码,大幅压缩插件体积
 
-![UTOOLS1587431167767.png](https://user-gold-cdn.xitu.io/2020/4/21/1719a4559a6f0ac4?w=804&h=610&f=png&s=170496)
+![JygVKI.png](https://s1.ax1x.com/2020/04/25/JygVKI.png)
 
 **v0.0.6**
 
@@ -55,7 +60,7 @@
 
 ## 预览
 
-![0.0.2.gif](https://i.loli.net/2019/03/27/5c9ae3d193b1d.gif)
+![JXshoq.gif](https://s1.ax1x.com/2020/05/01/JXshoq.gif)
 
 
 
