@@ -6,18 +6,44 @@ const fs = require('fs');
 const process = require('process');
 const { clipboard, shell } = require('electron')
 
-isDev = /unsafe-\w+\.asar/.test(__dirname) ? false : true
+isDev = /[a-zA-Z0-9\-]+\.asar/.test(__dirname) ? false : true
 
 basename = path.basename
 
 copy = clipboard.writeText
 open = shell.showItemInFolder
 
-GetBinPath = ExeFile => {
+GetFilePath = file => {
     if (isDev) {
-        return path.join(__dirname, 'bin', ExeFile)
+        return path.join(__dirname, 'bin', file)
     } else {
-        return path.join(__dirname.replace(/(unsafe-\w+\.asar)/,'$1.unpacked'), 'bin', ExeFile)  
+        return path.join(__dirname.replace(/([a-zA-Z0-9\-]+\.asar)/,'$1.unpacked'), 'bin', file)  
+    }
+}
+
+compileFile = script => {
+    // utools.showNotification('插件初始化中...')
+    var compilerPath;
+    var scriptPath = GetFilePath(script)
+    var scriptDir = path.dirname(scriptPath)
+    var dotnet3 = 'C:\\Windows\\Microsoft.NET\\Framework\\v3.5\\csc.exe'
+    var dotnet4 = 'C:\\Windows\\Microsoft.NET\\Framework\\v4.0.30319\\csc.exe'
+    if (fs.existsSync(dotnet4)) {
+        compilerPath = dotnet4
+    } else {
+        if (fs.existsSync(dotnet3)) {
+            compilerPath = dotnet3
+        } else {
+            utools.showNotification('插件初始化失败，需要安装.net framework 4.0')
+            utools.outPlugin();
+            return
+        }
+    }
+    try {
+        execSync(`pushd ${scriptDir} && ${compilerPath} ${script}`)
+    } catch (error) {
+        utools.showNotification('插件初始化失败，请下载upx版进行手动安装')
+        utools.outPlugin();
     }
 }
 
@@ -30,8 +56,10 @@ tasklist = () =>
         {
             var tasklist = [];
             if (isWin) {
-                execFile(GetBinPath('ProcessKiller.exe'), ['getProcess'], { encoding: 'buffer' },(err, stdout, stderr) => {
-                    err && reject(iconv.decode(stderr, 'gb18030'));
+                var binPath = GetFilePath('ProcessKiller.exe');
+                if(!fs.existsSync(binPath)) compileFile('ProcessKiller.cs')
+                execFile(binPath, ['getProcess'], { encoding: 'buffer' },(err, stdout, stderr) => {
+                    if(err) reject(utools.showNotification(iconv.decode(stderr, 'gb18030')));
                     data = JSON.parse(iconv.decode(stdout, 'gb18030'));
                     data = data.sort((x,y) => {
                         return y.WorkingSet - x.WorkingSet;
@@ -40,6 +68,7 @@ tasklist = () =>
                 })
             } else {
                 exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
+                    if(err) reject(utools.showNotification(stderr))
                     lines = stdout.split('\n');
                     lines.forEach(line => {
                         if (line) {
@@ -61,8 +90,7 @@ taskkill = (pid, restart) =>
         try {
             process.kill(pid);
         } catch (error) {
-            utools.showNotification('权限不足，请以管理员权限运行uTools');
-            reject(error);
+            reject(utools.showNotification('权限不足，请以管理员权限运行uTools'));
         }
         if(restart){
             utools.showNotification('重启进程成功！')
@@ -95,8 +123,8 @@ GetIcons = PathList =>
     new Promise((reslove, reject) => {
         if (isWin) {
             PathList = PathList.join("|").replace("\\", "/");
-            execFile(GetBinPath('ProcessKiller.exe'), ["getIcons", PathList],{ encoding: 'buffer' },(error, stdout, stderr) => {
-                error && reject(iconv.decode(stderr, 'gb18030'));
+            execFile(GetFilePath('ProcessKiller.exe'), ["getIcons", PathList],{ encoding: 'buffer' },(error, stdout, stderr) => {
+                if(error) reject(utools.showNotification(iconv.decode(stderr, 'gb18030')));
                 data = JSON.parse(iconv.decode(stdout, 'gb18030'));
                 reslove(data);
               });
