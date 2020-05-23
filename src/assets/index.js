@@ -98,41 +98,45 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
     }
     // var initTime = new Date().getTime();
     tasks = await tasklist();
-    window.text = '';
-    // 读取进程耗时
-    // var tasksLoadedTime = new Date().getTime();
-    // tasksLoadedTime -= initTime;
-    // console.log(tasksLoadedTime);
-    await CacheIcons(tasks);
-    // 缓存图标耗时
-    // var iconsCachedTime = new Date().getTime();
-    // iconsCachedTime -= (tasksLoadedTime + initTime);
-    // console.log(iconsCachedTime);
-    show(tasks, window.text);
-    sign = isWin ? 'Alt' : '⌘';
-    $('.numbers').html(`
-        <div>${sign}+1</div>
-        <div>${sign}+2</div>
-        <div>${sign}+3</div>
-        <div>${sign}+4</div>
-        <div>${sign}+5</div>
-        <div>${sign}+6</div>
-        <div>${sign}+7</div>
-        <div>${sign}+8</div>
-        <div>${sign}+9</div>
-        <div>${sign}+0</div>
-        <div>${sign}+-</div>`
-    );
-    utools.setSubInput(({ text }) => {
-        window.text = text;
-        show(tasks, text);
-    }, '左/右键 -> 关闭/重启进程; ctrl + c/e/r -> 复制路径/在文件管理器中显示/重启');
-    utools.onPluginOut(() => {
-        var update = { _id: "iconCache", data: localStorage };
-        if (db) update._rev = db._rev;
-        utools.db.put(update);
-        $('.numbers').html('');
-    })
+    if (tasks) {
+        window.text = '';
+        // 读取进程耗时
+        // var tasksLoadedTime = new Date().getTime();
+        // tasksLoadedTime -= initTime;
+        // console.log(tasksLoadedTime);
+        await CacheIcons(tasks);
+        // 缓存图标耗时
+        // var iconsCachedTime = new Date().getTime();
+        // iconsCachedTime -= (tasksLoadedTime + initTime);
+        // console.log(iconsCachedTime);
+        show(tasks, window.text);
+        var sign = isWin ? 'Alt' : '⌘';
+        $('.numbers').html(`
+            <div>${sign}+1</div>
+            <div>${sign}+2</div>
+            <div>${sign}+3</div>
+            <div>${sign}+4</div>
+            <div>${sign}+5</div>
+            <div>${sign}+6</div>
+            <div>${sign}+7</div>
+            <div>${sign}+8</div>
+            <div>${sign}+9</div>
+            <div>${sign}+0</div>
+            <div>${sign}+-</div>`
+        );
+        utools.setSubInput(({ text }) => {
+            window.text = text;
+            show(tasks, text);
+        }, '左/右键 -> 关闭/重启进程; ctrl + c/e/r -> 复制路径/在文件管理器中显示/重启');
+        utools.onPluginOut(() => {
+            var update = { _id: "iconCache", data: localStorage };
+            if (db) update._rev = db._rev;
+            utools.db.put(update);
+            $('.numbers').html('');
+        })
+    } else {
+        return utools.showNotification('获取进程列表失败')
+    }
 });
 
 
