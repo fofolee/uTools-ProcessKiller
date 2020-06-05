@@ -47,7 +47,6 @@ compileFile = script => {
     }
 }
 
-isWin = os.platform() == 'win32' ? true : false;
 
 totalMem = os.totalmem();
 
@@ -55,7 +54,7 @@ tasklist = () =>
     new Promise((reslove, reject) => {
         {
             var tasklist = [];
-            if (isWin) {
+            if (utools.isWindows()) {
                 var binPath = GetFilePath('ProcessKiller.exe');
                 if(!fs.existsSync(binPath)) compileFile('ProcessKiller.cs')
                 execFile(binPath, ['getProcess'], { encoding: 'buffer' },(err, stdout, stderr) => {
@@ -66,7 +65,7 @@ tasklist = () =>
                     });
                     reslove(data);
                 })
-            } else {
+            } else if(utools.isMacOs()){
                 exec('ps -A -o pid -o %cpu -o %mem -o user -o comm | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
                     if(err) reject(utools.showNotification(stderr))
                     lines = stdout.split('\n');
@@ -81,23 +80,52 @@ tasklist = () =>
                     });
                     reslove(tasklist);
                 });
+            } else {
+                exec('ps -A -o pid -o %cpu -o %mem -o user -o comm:20 -o cmd | sed 1d | sort -rnk 3', (err, stdout, stderr) => {
+                    if(err) reject(utools.showNotification(stderr))
+                    lines = stdout.split('\n');
+                    lines.forEach(line => {
+                        if (line) {
+                            l = /(\d+)\s+(\d+[\.|\,]\d+)\s+(\d+[\.|\,]\d+)\s+(.*?)\s+(.{20})\s+(.*)/.exec(line);
+                            dict = { pid: l[1], cpu: l[2], mem: l[3], usr: l[4], path: l[6], nam: l[5].trim() }
+                            tasklist.push(dict);
+                        }
+                    });
+                    reslove(tasklist);
+                });
             }
         }
     })
 
-taskkill = (pid, restart) =>
-    new Promise((reslove, reject) => {
+getLinuxProcPath = pid => {
+    try {
+        return fs.readlinkSync(`/proc/${pid}/exe`)
+    } catch (error) {
+        utools.showNotification(error)
+        return false
+    }
+}
+
+taskkill = (pid, restart) => {
+    try {
+        process.kill(pid);
+    } catch (error) {
+        utools.showNotification('权限不足，请以管理员权限运行uTools');
+        return false
+    }
+    if(restart){
+        var cmd = restart
+        if (!utools.isLinux()) cmd = '"' + cmd + '"'
         try {
-            process.kill(pid);
-        } catch (error) {
-            reject(utools.showNotification('权限不足，请以管理员权限运行uTools'));
-        }
-        if(restart){
+            exec(cmd);
             utools.showNotification('重启进程成功！')
-            exec(`"${restart}"`);
+        } catch (error) {
+            utools.showNotification(error);
+            return false
         }
-        reslove(true);
-})
+    }
+    return true
+}
 
 findThirdIndex = (str, cha) => {
     var x = str.indexOf(cha);
@@ -121,14 +149,14 @@ icns2Base64 = icns => {
 
 GetIcons = PathList =>
     new Promise((reslove, reject) => {
-        if (isWin) {
+        if (utools.isWindows()) {
             PathList = PathList.join("|").replace("\\", "/");
             execFile(GetFilePath('ProcessKiller.exe'), ["getIcons", PathList],{ encoding: 'buffer' },(error, stdout, stderr) => {
                 if(error) reject(utools.showNotification(iconv.decode(stderr, 'gb18030')));
                 data = JSON.parse(iconv.decode(stdout, 'gb18030'));
                 reslove(data);
               });
-        } else {
+        } else if(utools.isMacOs()){
             data = []
             PathList.forEach(p => {
                 var InfoFile = path.join(p, 'Contents', 'Info.plist');

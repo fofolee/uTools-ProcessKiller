@@ -3,7 +3,7 @@ const WINDOW_DEFAULT_ICON = './imgs/window.png'
 
 CacheIcons = async tasks => {
     var noCaches = [];
-    if (window.isWin) {
+    if (utools.isWindows()) {
         for (var t of tasks) {
             if (/^[A-z]:\\/.test(t.Path)) {
                 if (localStorage[basename(t.Path, '.exe')] == undefined && !noCaches.includes(t.Path)) noCaches.push(t.Path)
@@ -15,7 +15,7 @@ CacheIcons = async tasks => {
                 localStorage[basename(i.path, '.exe')] = i.b64Ico;
             });
         } 
-    } else {
+    } else if(utools.isMacOs()){
         for (var t of tasks) {
             if (t.app) {
                 if (localStorage[basename(t.app, '.app')] == undefined && !noCaches.includes(t.app)) noCaches.push(t.app)
@@ -31,16 +31,17 @@ CacheIcons = async tasks => {
 }
 
 kill = async (pid, restart) => {
-    await window.taskkill(pid, restart)
-    tasks = await tasklist();
-    show(tasks, window.text);
+    if (window.taskkill(pid, restart)) {
+        var tasks = await tasklist();
+        show(tasks, window.text);
+    }
 }
 
 search = (t, text) => {
     text = text.toUpperCase();
     var taskinfo = '';
     var icon;
-    if (window.isWin) {
+    if (utools.isWindows()) {
         icon = WINDOW_DEFAULT_ICON
         if (/^[A-z]:\\/.test(t.Path)) {
             var cache = localStorage[basename(t.Path, '.exe')];
@@ -97,7 +98,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
         }
     }
     // var initTime = new Date().getTime();
-    tasks = await tasklist();
+    var tasks = await tasklist();
     if (tasks) {
         window.text = '';
         // 读取进程耗时
@@ -110,7 +111,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
         // iconsCachedTime -= (tasksLoadedTime + initTime);
         // console.log(iconsCachedTime);
         show(tasks, window.text);
-        var sign = isWin ? 'Alt' : '⌘';
+        var sign = utools.isMacOs() ? '⌘' : 'Alt';
         $('.numbers').html(`
             <div>${sign}+1</div>
             <div>${sign}+2</div>
@@ -127,7 +128,7 @@ utools.onPluginEnter( async ({ code, type, payload }) => {
         utools.setSubInput(({ text }) => {
             window.text = text;
             show(tasks, text);
-        }, '左/右键 -> 关闭/重启进程; ctrl + c/e/r -> 复制路径/在文件管理器中显示/重启');
+        }, '左/右键 -> 关闭/重启进程; ctrl + c/e/r -> 复制路径/文件管理器中显示/重启');
         utools.onPluginOut(() => {
             var update = { _id: "iconCache", data: localStorage };
             if (db) update._rev = db._rev;
@@ -164,8 +165,13 @@ Mousetrap.bind('ctrl+c', () => {
 }); 
 
 Mousetrap.bind('ctrl+e', () => {
-    var path = $(".select").children(".path").text();
-    open(path);
+    var path
+    if (utools.isLinux()) {
+        path = getLinuxProcPath($(".select").attr('id'))
+    } else {
+        path = $(".select").children(".path").text();
+    }
+    if(path) open(path);
     return false
 }); 
 
@@ -211,7 +217,7 @@ Mousetrap.bind('up', () => {
     return false
 });
 
-key = isWin ? 'alt' : 'command'
+key = utools.isMacOs() ? 'command' : 'alt'
 
 Mousetrap.bind([`${key}+1`], function (e) {
     var index = ($(window).scrollTop()) / 50;
